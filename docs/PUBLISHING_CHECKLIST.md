@@ -13,7 +13,7 @@
 
 - [ ] `release/stream-notes-v1.0.0-windows-x64.zip`をアップロードする
 - [ ] `release/stream-notes-user-guide-v1.0.0.pdf`を使用方法PDFとしてアップロードする
-- [ ] `docs/BOOTH_DESCRIPTION.md`の文章を商品ページへ掲載する
+- [ ] `docs/BOOTH_PRODUCT_DESCRIPTION.txt`を商品紹介文欄へ貼り付ける
 - [ ] GitHub Releasesへのリンクを掲載する
 - [ ] 公開者本人のDoneru URLを任意支援欄へ追加する
 - [ ] 商品価格を0円にする
