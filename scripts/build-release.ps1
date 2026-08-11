@@ -104,7 +104,15 @@ Copy-Item -LiteralPath $nodeExecutable -Destination (Join-Path $bundleRoot "runt
 Copy-Item -LiteralPath $nodeLicense -Destination (Join-Path $bundleRoot "runtime\LICENSE")
 
 Compress-Archive -LiteralPath $bundleRoot -DestinationPath $zipPath -CompressionLevel Optimal
-$hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+$zipStream = [System.IO.File]::OpenRead($zipPath)
+$sha256 = [System.Security.Cryptography.SHA256]::Create()
+try {
+  $hashBytes = $sha256.ComputeHash($zipStream)
+  $hash = ([System.BitConverter]::ToString($hashBytes) -replace "-", "").ToLowerInvariant()
+} finally {
+  $sha256.Dispose()
+  $zipStream.Dispose()
+}
 Set-Content -LiteralPath $checksumPath -Value "$hash  $([System.IO.Path]::GetFileName($zipPath))" -Encoding ASCII
 
 Write-Output "Created: $zipPath"
