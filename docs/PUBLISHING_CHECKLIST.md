@@ -2,12 +2,13 @@
 
 ## GitHub
 
-- [ ] `Miko-C/stream-notes`をPublicで作成する
-- [ ] このフォルダーを初回コミットして`main`へプッシュする
-- [ ] ActionsのCIがNode.js 22／24で成功する
-- [ ] Dependabot alertsとsecurity updatesを有効にする
-- [ ] `v1.0.0`タグを作り、ReleaseワークフローでZIPを公開する
-- [ ] Issue機能を有効にする
+- [x] `Miko-C/stream-notes-for-obs`をPublicで作成する
+- [x] このフォルダーを`main`へプッシュする
+- [x] ActionsのCIがNode.js 22／24で成功する
+- [x] Dependabot alertsとsecurity updatesを有効にする
+- [x] `v1.0.0`タグを作り、ReleaseワークフローでZIPを公開する
+- [x] 使用方法PDFを`v1.0.0` Releaseへ追加する
+- [x] Issue機能を有効にする
 
 ## BOOTH
 

@@ -48,6 +48,9 @@
 
 不具合報告と機能要望はGitHub Issuesで受け付けます。配信活動や利用者からのフィードバックをもとに改善していきます。
 
+- GitHub: <https://github.com/Miko-C/stream-notes-for-obs>
+- Windows版ダウンロード: <https://github.com/Miko-C/stream-notes-for-obs/releases/latest>
+
 ## 任意支援
 
 全機能を無料で利用できます。開発を応援したい方向けの任意支援先として、商品ページに公開者のDoneru URLを掲載します。支援の有無による機能差はありません。

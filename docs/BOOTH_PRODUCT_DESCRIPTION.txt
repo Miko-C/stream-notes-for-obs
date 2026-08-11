@@ -80,6 +80,9 @@ OBS側の表示URLは「http://127.0.0.1:4177/?view=overlay」です。文字が
 
 ソースコードはMIT LicenseでGitHub公開します。不具合報告と機能提案はGitHub Issuesで受け付け、配信活動や利用者からのフィードバックをもとに改善していきます。
 
+GitHub：https://github.com/Miko-C/stream-notes-for-obs
+Windows版ダウンロード：https://github.com/Miko-C/stream-notes-for-obs/releases/latest
+
 本ソフトウェアは現状有姿で提供されます。利用前に重要な原稿をバックアップし、配信前にテストを行ってください。
 
 【ファイル確認用SHA-256】
