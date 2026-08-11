@@ -440,6 +440,57 @@ h1 {
   justify-content: flex-end;
 }
 
+.page-navigation,
+.page-number-field,
+.slide-range-field {
+  display: inline-flex;
+  align-items: center;
+}
+
+.page-navigation {
+  flex: 1 1 260px;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 190px;
+  max-width: 390px;
+}
+
+.slide-range-field {
+  flex: 1 1 160px;
+  min-width: 100px;
+}
+
+#slideRange {
+  width: 100%;
+  accent-color: var(--teal);
+}
+
+.page-number-field {
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+#slideNumberInput {
+  width: 58px;
+  height: 34px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: rgba(244, 240, 229, 0.07);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  text-align: right;
+}
+
+#slideNumberInput:focus {
+  border-color: var(--teal);
+  outline: 2px solid rgba(82, 211, 170, 0.2);
+  outline-offset: 1px;
+}
+
 .content-scroll-controls {
   display: inline-flex;
   align-items: center;
@@ -648,11 +699,12 @@ select {
 }
 
 #slideStatus {
-  min-width: 46px;
+  min-width: 38px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
-  text-align: center;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .preview-frame {
@@ -1651,6 +1703,12 @@ tr:last-child td {
 
   .stage-controls {
     justify-content: flex-start;
+  }
+
+  .page-navigation {
+    order: 4;
+    flex-basis: 100%;
+    max-width: none;
   }
 }
 

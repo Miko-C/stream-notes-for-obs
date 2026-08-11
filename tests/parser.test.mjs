@@ -151,6 +151,41 @@ const regularBrackets = parseMarkdownReport(`# 注記
 
 assert.equal(regularBrackets.sections[0].blocks[0].text, "**[重要]** この表記は数式に変換しません。");
 
+const fragmentedAiMath = parseMarkdownReport(String.raw`# 分断された数式
+
+## 式
+
+**[ 0.95\\times0.95 ==============**
+
+**0.9025 ]**
+**[ E \\propto CV^2 ]**
+**[ Revenue\_{2035} ==============**
+
+**Revenue\_{\\mathrm{base}} \\times \\frac{ContentIndex\_{2035}}{100} ]**
+`);
+
+assert.deepEqual(
+  fragmentedAiMath.sections[0].blocks.map((block) => block.text),
+  [
+    String.raw`$$0.95\times0.95 = 0.9025$$`,
+    String.raw`$$E \propto CV^2$$`,
+    String.raw`$$Revenue_{2035} = Revenue_{\mathrm{base}} \times \frac{ContentIndex_{2035}}{100}$$`
+  ]
+);
+
+const fencedBracketExample = parseMarkdownReport([
+  "# コード例",
+  "",
+  "## 入力",
+  "",
+  "```text",
+  String.raw`**[ E \\propto CV^2 ]**`,
+  "```"
+].join("\n"));
+
+assert.equal(fencedBracketExample.sections[0].blocks[0].type, "diagram");
+assert.match(fencedBracketExample.sections[0].blocks[0].text, /^\*\*\[/);
+
 const fencedDiagram = parseMarkdownReport([
   "# 光トランシーバー",
   "",

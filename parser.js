@@ -3,14 +3,15 @@ const footnotePattern = /^\[[^\]]+\]:\s+/;
 const horizontalRulePattern = /^\s*[-*_]{3,}\s*$/;
 const listPattern = /^\s*(?:[-*+]|\d+[.)])\s+(.+)$/;
 const fenceStartPattern = /^\s*(`{3,}|~{3,})\s*([^\s`]*)?\s*$/;
-const boldBracketMathPattern = /(\*\*|__)\s*\[\s*([^\]\n]+?)\s*\]\s*\1/g;
-const plainBracketMathPattern = /\[\s*([^\]\n]+?)\s*\]/g;
-const latexCommandPattern = /\\{1,2}(?:frac|dfrac|tfrac|sqrt|text|mathrm|mathbf|mathit|operatorname|sum|prod|int|lim|begin|end|left|right|overline|underline|vec|hat|bar|alpha|beta|gamma|delta|theta|lambda|mu|pi|rho|sigma|tau|phi|omega|times|cdot|pm|leq|geq|neq|infty)\b/i;
+const boldBracketMathPattern = /(\*\*|__)\s*\[\s*([\s\S]*?)\s*\]\s*\1/g;
+const plainBracketMathPattern = /\[\s*([\s\S]*?)\s*\]/g;
+const latexCommandPattern = /\\[A-Za-z]+/;
+const standaloneMathCommandPattern = /\\(?:alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|rho|sigma|tau|phi|psi|omega|sum|prod|int|lim|infty)\b/i;
 const MAX_DIAGRAM_BLOCK_LINES = 120;
 const DIAGRAM_SCAN_LINES = 32;
 
 export function parseMarkdownReport(markdown = "") {
-  const source = normalizeNewlines(markdown).trim();
+  const source = normalizeDocumentMath(markdown).trim();
   const lines = source.split("\n");
   const sections = [];
   let title = "";
@@ -277,16 +278,63 @@ export function stripMarkdownInline(value = "") {
     .trim();
 }
 
-export function normalizeMathNotation(value = "") {
+export function normalizeMathNotation(value = "", options = {}) {
   const convert = (whole, expression) => {
-    if (!latexCommandPattern.test(expression)) return whole;
-    const latex = expression.trim().replace(/\\\\(?=[A-Za-z])/g, "\\");
-    return `$$${latex}$$`;
+    if (expression.length > 10_000 || /(?:^|\n)\s*#{1,4}\s/.test(expression)) return whole;
+    const latex = expression
+      .replace(/\*\*|__/g, " ")
+      .replace(/={3,}/g, " = ")
+      .replace(/\\\\(?=[A-Za-z])/g, "\\")
+      .replace(/\\{1,2}([_^])(?=\{)/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!looksLikeLatexExpression(latex)) return whole;
+    const math = `$$${latex}$$`;
+    return options.blockSpacing ? `\n\n${math}\n\n` : math;
   };
 
   return String(value)
     .replace(boldBracketMathPattern, (whole, _marker, expression) => convert(whole, expression))
     .replace(plainBracketMathPattern, (whole, expression) => convert(whole, expression));
+}
+
+function looksLikeLatexExpression(value) {
+  if (/^[A-Za-z]:\\/.test(value) || !latexCommandPattern.test(value)) return false;
+  return /[=+\-*/^_{}<>]|\d/.test(value) || standaloneMathCommandPattern.test(value);
+}
+
+function normalizeDocumentMath(value = "") {
+  const lines = normalizeNewlines(value).split("\n");
+  const output = [];
+  let proseLines = [];
+  let fenceMarker = "";
+
+  const flushProse = () => {
+    if (!proseLines.length) return;
+    output.push(normalizeMathNotation(proseLines.join("\n"), { blockSpacing: true }));
+    proseLines = [];
+  };
+
+  for (const line of lines) {
+    if (fenceMarker) {
+      output.push(line);
+      if (isFenceEnd(line, fenceMarker)) fenceMarker = "";
+      continue;
+    }
+
+    const fence = line.match(fenceStartPattern);
+    if (fence) {
+      flushProse();
+      fenceMarker = fence[1];
+      output.push(line);
+      continue;
+    }
+
+    proseLines.push(line);
+  }
+
+  flushProse();
+  return output.join("\n");
 }
 
 function normalizeNewlines(value) {

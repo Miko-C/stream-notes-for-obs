@@ -133,6 +133,10 @@ const calloutInput = document.querySelector("#calloutInput");
 const calloutTone = document.querySelector("#calloutTone");
 const obsQualityStatus = document.querySelector("#obsQualityStatus");
 const outputToggleButton = document.querySelector("#outputToggleButton");
+const prevButton = document.querySelector("#prevButton");
+const nextButton = document.querySelector("#nextButton");
+const slideRange = document.querySelector("#slideRange");
+const slideNumberInput = document.querySelector("#slideNumberInput");
 const slideStatus = document.querySelector("#slideStatus");
 const toast = document.querySelector("#toast");
 
@@ -243,7 +247,17 @@ function controlTemplate() {
           <div class="stage-controls">
             <button class="control-button output-toggle" id="outputToggleButton" type="button"></button>
             <button class="icon-button" id="prevButton" type="button" aria-label="前のページ">&#8249;</button>
-            <span id="slideStatus"></span>
+            <div class="page-navigation" aria-label="ページ移動">
+              <label class="slide-range-field">
+                <span class="sr-only">ページスライダー</span>
+                <input id="slideRange" type="range" min="1" max="1" step="1" value="1" aria-label="ページスライダー">
+              </label>
+              <label class="page-number-field">
+                <span class="sr-only">移動先ページ</span>
+                <input id="slideNumberInput" type="number" min="1" max="1" step="1" value="1" inputmode="numeric" aria-label="移動先ページ">
+                <span id="slideStatus">/ 1</span>
+              </label>
+            </div>
             <button class="icon-button" id="nextButton" type="button" aria-label="次のページ">&#8250;</button>
             <div class="content-scroll-controls" id="contentScrollControls" hidden>
               <button class="icon-button compact" id="scrollTopButton" type="button" aria-label="内容の先頭へ" title="内容の先頭へ">&#8613;</button>
@@ -457,8 +471,17 @@ function wireControls() {
     }
   });
 
-  document.querySelector("#prevButton")?.addEventListener("click", () => moveSlide(-1, true));
-  document.querySelector("#nextButton")?.addEventListener("click", () => moveSlide(1, true));
+  prevButton?.addEventListener("click", () => moveSlide(-1, true));
+  nextButton?.addEventListener("click", () => moveSlide(1, true));
+  slideRange?.addEventListener("input", () => goToSlide(Number(slideRange.value) - 1, false));
+  slideRange?.addEventListener("change", () => goToSlide(Number(slideRange.value) - 1, true));
+  slideNumberInput?.addEventListener("change", commitSlideNumber);
+  slideNumberInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    commitSlideNumber();
+    slideNumberInput.select();
+  });
   document.querySelector("#scrollTopButton")?.addEventListener("click", () => scrollContentToTop(true));
   document.querySelector("#scrollUpButton")?.addEventListener("click", () => scrollContentBy(-0.72, true));
   document.querySelector("#scrollDownButton")?.addEventListener("click", () => scrollContentBy(0.72, true));
@@ -1344,7 +1367,7 @@ function renderStage() {
     stage.classList.add("ticker-hidden");
     stage.classList.remove("interaction-enabled");
     stage.innerHTML = `<div class="safe-screen" aria-label="配信画面は非表示です"></div>`;
-    if (slideStatus) slideStatus.textContent = "非表示";
+    syncSlideNavigation(1, true);
     return;
   }
 
@@ -1361,6 +1384,7 @@ function renderStage() {
 
   slideIndex = wrap(slideIndex, safeSlides.length);
   const slide = safeSlides[slideIndex];
+  syncSlideNavigation(safeSlides.length);
   const metrics = collectMetrics(report).slice(0, 9);
   const slideHasDiagram = slide.blocks.some((block) => block.type === "diagram");
   const visibleMetrics = slideHasDiagram ? [] : metrics;
@@ -1429,7 +1453,6 @@ function renderStage() {
   renderMath(stage);
   window.requestAnimationFrame(() => fitDiagramBlocks(stage));
   renderInteraction({ redrawCanvas: true, applyScroll: true });
-  if (slideStatus) slideStatus.textContent = `${slideIndex + 1} / ${safeSlides.length}`;
 }
 
 function renderInteraction({ redrawCanvas = false, applyScroll = false } = {}) {
@@ -1678,13 +1701,54 @@ function moveSlide(delta, broadcast = false) {
   const slides = splitIntoSlides(parseMarkdownReport(current.source), {
     maxWeight: getSlideMaxWeight()
   });
-  slideIndex = wrap(slideIndex + delta, Math.max(slides.length, 1));
+  setSlideIndex(wrap(slideIndex + delta, Math.max(slides.length, 1)), broadcast);
+}
+
+function goToSlide(requestedIndex, broadcast = true) {
+  if (state.outputHidden) return;
+  const current = getActiveDocument(state);
+  const slides = splitIntoSlides(parseMarkdownReport(current.source), {
+    maxWeight: getSlideMaxWeight()
+  });
+  const total = Math.max(slides.length, 1);
+  const target = clamp(Math.trunc(Number(requestedIndex)), 0, total - 1);
+  setSlideIndex(target, broadcast);
+}
+
+function setSlideIndex(nextIndex, broadcast) {
+  slideIndex = nextIndex;
   if (broadcast) {
     const revision = nextRevision();
     state = { ...state, slideIndex, updatedAt: revision };
     publishState();
   }
   renderStage();
+}
+
+function commitSlideNumber() {
+  if (!slideNumberInput) return;
+  goToSlide(Number(slideNumberInput.value) - 1, true);
+}
+
+function syncSlideNavigation(total, hidden = false) {
+  const safeTotal = Math.max(1, Number(total) || 1);
+  const currentPage = clamp(slideIndex + 1, 1, safeTotal);
+  const disabled = hidden || safeTotal <= 1;
+
+  if (slideRange) {
+    slideRange.max = String(safeTotal);
+    slideRange.value = String(currentPage);
+    slideRange.disabled = disabled;
+    slideRange.setAttribute("aria-valuetext", `${currentPage} / ${safeTotal}`);
+  }
+  if (slideNumberInput) {
+    slideNumberInput.max = String(safeTotal);
+    slideNumberInput.value = String(currentPage);
+    slideNumberInput.disabled = disabled;
+  }
+  if (slideStatus) slideStatus.textContent = hidden ? "非表示" : `/ ${safeTotal}`;
+  if (prevButton) prevButton.disabled = disabled;
+  if (nextButton) nextButton.disabled = disabled;
 }
 
 function getSlideMaxWeight() {
