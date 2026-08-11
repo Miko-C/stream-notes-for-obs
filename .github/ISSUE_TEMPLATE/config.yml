@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: セキュリティ上の問題
+    url: mailto:kuroikeai.contact@gmail.com
+    about: 脆弱性の詳細は公開Issueではなくメールで連絡してください

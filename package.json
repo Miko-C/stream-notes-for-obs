@@ -1,0 +1,21 @@
+{
+  "name": "stream-notes-overlay",
+  "version": "1.0.0",
+  "description": "Markdown and text presentation overlay for OBS Studio",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "Miko-C",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "node server.js",
+    "test": "node tests/parser.test.mjs && node tests/state.test.mjs && node tests/math.test.mjs && node tests/interaction.test.mjs && node tests/stage-layout.test.mjs && node tests/server.test.mjs",
+    "check": "npm run test",
+    "release:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1"
+  },
+  "dependencies": {
+    "katex": "0.18.4"
+  }
+}

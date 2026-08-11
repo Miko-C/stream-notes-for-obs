@@ -1,0 +1,23 @@
+name: 機能提案
+description: 配信で役立つ改善や機能を提案します
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 配信中に困っていること
+      description: どのような場面で必要になるかを記載してください。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 希望する動作
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 現在の代替手段
+      description: 現在どのように対応しているか、あれば記載してください。
