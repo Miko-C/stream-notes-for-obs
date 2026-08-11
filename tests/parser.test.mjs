@@ -117,6 +117,40 @@ $$P = \frac{E}{t}$$
 assert.match(mathReport.sections[0].blocks[0].text, /\$E = mc\^2\$/);
 assert.match(mathReport.sections[0].blocks[1].text, /\\frac\{E\}\{t\}/);
 
+const aiBracketMath = parseMarkdownReport(String.raw`# 数式
+
+## 面積比率
+
+**[ \\frac{\\text{SRAM面積}} {\\text{Chip総面積}} ]**
+`);
+
+assert.equal(
+  aiBracketMath.sections[0].blocks[0].text,
+  String.raw`$$\frac{\text{SRAM面積}} {\text{Chip総面積}}$$`
+);
+assert.deepEqual(aiBracketMath.highlights, []);
+
+const singleSlashBracketMath = parseMarkdownReport(String.raw`# 数式
+
+## 面積比率
+
+[ \frac{\text{SRAM面積}} {\text{Chip総面積}} ]
+`);
+
+assert.equal(
+  singleSlashBracketMath.sections[0].blocks[0].text,
+  String.raw`$$\frac{\text{SRAM面積}} {\text{Chip総面積}}$$`
+);
+
+const regularBrackets = parseMarkdownReport(`# 注記
+
+## 通常文
+
+**[重要]** この表記は数式に変換しません。
+`);
+
+assert.equal(regularBrackets.sections[0].blocks[0].text, "**[重要]** この表記は数式に変換しません。");
+
 const fencedDiagram = parseMarkdownReport([
   "# 光トランシーバー",
   "",

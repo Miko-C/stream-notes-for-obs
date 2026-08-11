@@ -3,6 +3,9 @@ const footnotePattern = /^\[[^\]]+\]:\s+/;
 const horizontalRulePattern = /^\s*[-*_]{3,}\s*$/;
 const listPattern = /^\s*(?:[-*+]|\d+[.)])\s+(.+)$/;
 const fenceStartPattern = /^\s*(`{3,}|~{3,})\s*([^\s`]*)?\s*$/;
+const boldBracketMathPattern = /(\*\*|__)\s*\[\s*([^\]\n]+?)\s*\]\s*\1/g;
+const plainBracketMathPattern = /\[\s*([^\]\n]+?)\s*\]/g;
+const latexCommandPattern = /\\{1,2}(?:frac|dfrac|tfrac|sqrt|text|mathrm|mathbf|mathit|operatorname|sum|prod|int|lim|begin|end|left|right|overline|underline|vec|hat|bar|alpha|beta|gamma|delta|theta|lambda|mu|pi|rho|sigma|tau|phi|omega|times|cdot|pm|leq|geq|neq|infty)\b/i;
 const MAX_DIAGRAM_BLOCK_LINES = 120;
 const DIAGRAM_SCAN_LINES = 32;
 
@@ -161,7 +164,7 @@ export function parseMarkdownReport(markdown = "") {
     if (paragraphLines.length) {
       pushBlock({
         type: "paragraph",
-        text: stripInlineLinks(paragraphLines.join(" "))
+        text: normalizeMathNotation(stripInlineLinks(paragraphLines.join(" ")))
       });
     } else {
       index += 1;
@@ -172,7 +175,7 @@ export function parseMarkdownReport(markdown = "") {
     sections.push({
       title: "配信ノート",
       level: 2,
-      blocks: [{ type: "paragraph", text: stripInlineLinks(source) }]
+      blocks: [{ type: "paragraph", text: normalizeMathNotation(stripInlineLinks(source)) }]
     });
   }
 
@@ -267,11 +270,23 @@ export function collectMetrics(report) {
 }
 
 export function stripMarkdownInline(value = "") {
-  return stripInlineLinks(value)
+  return normalizeMathNotation(stripInlineLinks(value))
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/__([^_]+)__/g, "$1")
     .replace(/`([^`]+)`/g, "$1")
     .trim();
+}
+
+export function normalizeMathNotation(value = "") {
+  const convert = (whole, expression) => {
+    if (!latexCommandPattern.test(expression)) return whole;
+    const latex = expression.trim().replace(/\\\\(?=[A-Za-z])/g, "\\");
+    return `$$${latex}$$`;
+  };
+
+  return String(value)
+    .replace(boldBracketMathPattern, (whole, _marker, expression) => convert(whole, expression))
+    .replace(plainBracketMathPattern, (whole, expression) => convert(whole, expression));
 }
 
 function normalizeNewlines(value) {
@@ -472,7 +487,8 @@ function extractHighlights(source) {
   let match = boldPattern.exec(source);
 
   while (match) {
-    highlights.push(stripMarkdownInline(match[1]));
+    const highlight = stripMarkdownInline(match[1]);
+    if (!/^\$\$[\s\S]+\$\$$/.test(highlight)) highlights.push(highlight);
     match = boldPattern.exec(source);
   }
 
