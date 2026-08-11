@@ -97,6 +97,7 @@ foreach ($relativePath in $applicationFiles) {
 }
 
 Copy-Item -LiteralPath (Join-Path $projectRoot "docs\USER_GUIDE.txt") -Destination (Join-Path $bundleRoot "README.txt")
+Copy-Item -LiteralPath (Join-Path $projectRoot "docs\BOOTH_USER_GUIDE.md") -Destination (Join-Path $bundleRoot "USER_GUIDE.md")
 Copy-Item -LiteralPath (Join-Path $projectRoot "licenses\KATEX-LICENSE.txt") -Destination (Join-Path $bundleRoot "licenses\KATEX-LICENSE.txt")
 Copy-Item -LiteralPath $katexDist -Destination (Join-Path $bundleRoot "node_modules\katex") -Recurse
 Copy-Item -LiteralPath $nodeExecutable -Destination (Join-Path $bundleRoot "runtime\node.exe")

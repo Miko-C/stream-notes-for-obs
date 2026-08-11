@@ -30,7 +30,7 @@ AIが出力した文章、Markdown、テキストファイルを、OBS Studioの
 3. 操作画面で「URLコピー」
 4. OBSのブラウザーソースへURLを設定
 
-詳しい手順はZIP内の`README.txt`にあります。
+簡易手順はZIP内の`README.txt`、詳しい手順は`USER_GUIDE.md`と商品ページに添付する使用方法PDFにあります。
 
 ## データと通信
 

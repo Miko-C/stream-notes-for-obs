@@ -54,6 +54,9 @@ Windows向け配布ZIPは次のコマンドで生成できます。
 npm run release:windows
 ```
 
+利用者向けの詳しい操作方法は[BOOTH_USER_GUIDE.md](docs/BOOTH_USER_GUIDE.md)にまとめています。
+公開前に除外すべき情報は[PRIVACY_RELEASE_CHECKLIST.md](docs/PRIVACY_RELEASE_CHECKLIST.md)で確認できます。
+
 ## フィードバック
 
 通常の不具合や機能提案はGitHub Issuesへ送ってください。脆弱性に関する連絡は[SECURITY.md](SECURITY.md)を参照してください。
