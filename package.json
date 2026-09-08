@@ -16,6 +16,6 @@
     "release:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/build-release.ps1"
   },
   "dependencies": {
-    "katex": "0.18.4"
+    "katex": "0.18.6"
   }
 }
