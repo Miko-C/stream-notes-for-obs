@@ -117,6 +117,76 @@ $$P = \frac{E}{t}$$
 assert.match(mathReport.sections[0].blocks[0].text, /\$E = mc\^2\$/);
 assert.match(mathReport.sections[0].blocks[1].text, /\\frac\{E\}\{t\}/);
 
+const ltaFormula = String.raw`\[\text{従来LTA} \approx \text{長期の購入予定・需給調整}\]`;
+const scaFormula = String.raw`\[\text{SCA} \approx \text{複数年の法的拘束力を持つ容量予約契約}\]`;
+const contractMath = parseMarkdownReport([
+  "# 契約比較",
+  "",
+  "## 式",
+  "",
+  ltaFormula,
+  "",
+  "に対して、",
+  "",
+  scaFormula
+].join("\n"));
+assert.deepEqual(contractMath.sections[0].blocks, [
+  { type: "paragraph", text: ltaFormula },
+  { type: "paragraph", text: "に対して、" },
+  { type: "paragraph", text: scaFormula }
+]);
+for (const block of contractMath.sections[0].blocks) {
+  assert.notEqual(block.text.trim(), "\\");
+  assert.doesNotMatch(block.text, /\\\$\$/);
+}
+
+const multilineMath = String.raw`\[
+\begin{array}{cc}
+\sqrt[3]{8} & [x] \\
+
+1 & 2
+\end{array}
+\]`;
+const multilineMathReport = parseMarkdownReport([
+  "# 複数行の式",
+  "",
+  "## 式",
+  "",
+  multilineMath,
+  "",
+  "式の後の説明です。"
+].join("\n"));
+assert.deepEqual(multilineMathReport.sections[0].blocks, [
+  { type: "paragraph", text: multilineMath },
+  { type: "paragraph", text: "式の後の説明です。" }
+]);
+
+const inlineCodeMath = '`' + String.raw`[ \alpha ]` + '`';
+const inlineCodeReport = parseMarkdownReport([
+  "# コードの表記",
+  "",
+  "## 入力",
+  "",
+  `入力例は ${inlineCodeMath} です。`
+].join("\n"));
+assert.equal(inlineCodeReport.sections[0].blocks[0].text, `入力例は ${inlineCodeMath} です。`);
+
+const inlineBracketFormula = String.raw`式は \(\sqrt[3]{8} + x_{a__b} + \text{[2]}\) です。`;
+const inlineBracketReport = parseMarkdownReport(`# 記録\n\n## 式\n\n- ${inlineBracketFormula}`);
+assert.equal(inlineBracketReport.sections[0].blocks[0].items[0], inlineBracketFormula);
+
+const unclosedMath = parseMarkdownReport(String.raw`# 記録
+
+## 未完の式
+\[
+\alpha
+
+## 次の項目
+説明を保持します。`);
+assert.equal(unclosedMath.sections.length, 2);
+assert.match(unclosedMath.sections[0].blocks[0].text, /^\\\[/);
+assert.equal(unclosedMath.sections[1].blocks[0].text, "説明を保持します。");
+
 const aiBracketMath = parseMarkdownReport(String.raw`# 数式
 
 ## 面積比率

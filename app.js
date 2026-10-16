@@ -1,5 +1,7 @@
 import {
   collectMetrics,
+  mapOutsideMath,
+  normalizeLatexForDisplay,
   parseMarkdownReport,
   splitIntoSlides
 } from "./parser.js";
@@ -1794,10 +1796,11 @@ function persistLocally(nextState) {
 }
 
 function formatInline(value) {
-  return escapeHtml(value)
+  return mapOutsideMath(value, (text) => escapeHtml(text)
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/__([^_]+)__/g, "<strong>$1</strong>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>");
+    .replace(/`([^`]+)`/g, "<code>$1</code>"),
+  { protectedTransform: escapeHtml });
 }
 
 function renderMath(root) {
@@ -1810,6 +1813,7 @@ function renderMath(root) {
         { left: "$", right: "$", display: false }
       ],
       ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+      preProcess: normalizeLatexForDisplay,
       throwOnError: false,
       strict: "ignore",
       trust: false

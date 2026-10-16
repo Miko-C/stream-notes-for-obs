@@ -1,6 +1,6 @@
 {
   "name": "stream-notes-overlay",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Markdown and text presentation overlay for OBS Studio",
   "private": true,
   "type": "module",

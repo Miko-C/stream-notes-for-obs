@@ -4,7 +4,7 @@ const horizontalRulePattern = /^\s*[-*_]{3,}\s*$/;
 const listPattern = /^\s*(?:[-*+]|\d+[.)])\s+(.+)$/;
 const fenceStartPattern = /^\s*(`{3,}|~{3,})\s*([^\s`]*)?\s*$/;
 const boldBracketMathPattern = /(\*\*|__)\s*\[\s*([\s\S]*?)\s*\]\s*\1/g;
-const plainBracketMathPattern = /\[\s*([\s\S]*?)\s*\]/g;
+const plainBracketMathPattern = /(?<!\\)\[\s*([\s\S]*?)\s*(?<!\\)\]/g;
 const latexCommandPattern = /\\[A-Za-z]+/;
 const standaloneMathCommandPattern = /\\(?:alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|rho|sigma|tau|phi|psi|omega|sum|prod|int|lim|infty)\b/i;
 const MAX_DIAGRAM_BLOCK_LINES = 120;
@@ -65,6 +65,14 @@ export function parseMarkdownReport(markdown = "") {
           pushDiagramBlocks(content, pushBlock);
         }
       }
+      continue;
+    }
+
+    // Keep display expressions together, including blank lines and TeX row breaks.
+    const displayMath = readDisplayMathBlock(lines, index);
+    if (displayMath) {
+      pushBlock({ type: "paragraph", text: displayMath.text });
+      index = displayMath.nextIndex;
       continue;
     }
 
@@ -151,6 +159,7 @@ export function parseMarkdownReport(markdown = "") {
         footnotePattern.test(trimmed) ||
         horizontalRulePattern.test(trimmed) ||
         fenceStartPattern.test(nextLine) ||
+        readDisplayMathBlock(lines, index) ||
         isTableStart(lines, index) ||
         listPattern.test(nextLine) ||
         isRawDiagramStart(lines, index)
@@ -271,15 +280,16 @@ export function collectMetrics(report) {
 }
 
 export function stripMarkdownInline(value = "") {
-  return normalizeMathNotation(stripInlineLinks(value))
+  return mapOutsideMath(normalizeMathNotation(stripInlineLinks(value)), (text) => text
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/__([^_]+)__/g, "$1")
-    .replace(/`([^`]+)`/g, "$1")
+    .replace(/`([^`]+)`/g, "$1"))
     .trim();
 }
 
 export function normalizeMathNotation(value = "", options = {}) {
-  const convert = (whole, expression) => {
+  const convert = (whole, expression, protectedPrefix) => {
+    if (expression.includes(protectedPrefix)) return whole;
     if (expression.length > 10_000 || /(?:^|\n)\s*#{1,4}\s/.test(expression)) return whole;
     const latex = expression
       .replace(/\*\*|__/g, " ")
@@ -293,14 +303,112 @@ export function normalizeMathNotation(value = "", options = {}) {
     return options.blockSpacing ? `\n\n${math}\n\n` : math;
   };
 
-  return String(value)
-    .replace(boldBracketMathPattern, (whole, _marker, expression) => convert(whole, expression))
-    .replace(plainBracketMathPattern, (whole, expression) => convert(whole, expression));
+  return mapOutsideMath(value, (text, protectedPrefix) => text
+    .replace(boldBracketMathPattern, (whole, _marker, expression) => convert(whole, expression, protectedPrefix))
+    .replace(plainBracketMathPattern, (whole, expression) => convert(whole, expression, protectedPrefix)),
+  { preserveCode: true, preserveLinks: true });
+}
+
+const mathDelimiters = [
+  { left: "$$", right: "$$" },
+  { left: "\\[", right: "\\]" },
+  { left: "\\(", right: "\\)" },
+  { left: "$", right: "$" }
+];
+
+function isEscaped(text, index) {
+  let slashes = 0;
+  while (index > 0 && text[--index] === "\\") slashes += 1;
+  return slashes % 2 === 1;
+}
+
+function findMathEnd(text, start, delimiter) {
+  let braces = 0;
+  for (let index = start + delimiter.left.length; index < text.length; index += 1) {
+    if (delimiter.left === "$" && text[index] === "\n") return -1;
+    if (braces <= 0 && text.startsWith(delimiter.right, index)) return index + delimiter.right.length;
+    if (text[index] === "\\") index += 1;
+    else if (text[index] === "{") braces += 1;
+    else if (text[index] === "}") braces -= 1;
+  }
+  return -1;
+}
+
+// Apply Markdown/AI corrections only to prose. TeX brackets, underscores and
+// backslashes belong to the expression and must survive every formatting pass.
+export function mapOutsideMath(value, transform, options = {}) {
+  const text = String(value);
+  // Protect expressions before formatting the whole prose, so a bold wrapper
+  // can still span text and math without formatting inside the TeX expression.
+  let tokenPrefix = "\uE000";
+  while (text.includes(tokenPrefix)) tokenPrefix += "\uE000";
+  const protectedTokens = [];
+  let output = "";
+  let cursor = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    if (isEscaped(text, index)) continue;
+    let end = -1;
+    let preserve = true;
+    if (options.preserveCode && text[index] === "~" && (index === 0 || text[index - 1] === "\n")) {
+      const fence = text.slice(index).match(/^(~{3,})[^\n]*\n[\s\S]*?\n\1~*[ \t]*(?=\n|$)/);
+      if (fence) end = index + fence[0].length;
+    } else if (text[index] === "`") {
+      const marker = text.slice(index).match(/^`+/)[0];
+      const closing = text.indexOf(marker, index + marker.length);
+      if (closing >= 0) end = closing + marker.length;
+      preserve = Boolean(options.preserveCode);
+    } else if (options.preserveLinks && (text[index] === "[" || text.startsWith("![", index))) {
+      const link = text.slice(index).match(/^!?\[[^\]\n]*\](?:\([^\n)]*\)|\[[^\]\n]*\])/);
+      if (link) end = index + link[0].length;
+    } else {
+      const delimiter = mathDelimiters.find((item) => text.startsWith(item.left, index));
+      if (delimiter) end = findMathEnd(text, index, delimiter);
+    }
+    if (end < 0) continue;
+    output += text.slice(cursor, index);
+    const token = text.slice(index, end);
+    if (preserve) {
+      output += `${tokenPrefix}${protectedTokens.length}\uE001`;
+      protectedTokens.push(options.protectedTransform?.(token) ?? token);
+    } else {
+      output += token;
+    }
+    cursor = end;
+    index = end - 1;
+  }
+  return transform(output + text.slice(cursor), tokenPrefix).replace(
+    new RegExp(`${tokenPrefix}(\\d+)\uE001`, "g"),
+    (_whole, index) => protectedTokens[Number(index)]
+  );
+}
+
+function readDisplayMathBlock(lines, index) {
+  const first = lines[index].trim();
+  const delimiter = mathDelimiters.slice(0, 2).find((item) => first.startsWith(item.left));
+  if (!delimiter) return null;
+  let text = first;
+  for (let last = index; last < lines.length; last += 1) {
+    if (last > index) text += `\n${lines[last]}`;
+    const end = findMathEnd(text, 0, delimiter);
+    if (end >= 0) {
+      if (text.slice(end).trim()) return null;
+      return { text: text.trim(), nextIndex: last + 1 };
+    }
+    // An unclosed expression must not swallow the next section or code block.
+    if (last + 1 < lines.length && (headingPattern.test(lines[last + 1].trim()) || fenceStartPattern.test(lines[last + 1]))) return null;
+  }
+  return null;
 }
 
 function looksLikeLatexExpression(value) {
   if (/^[A-Za-z]:\\/.test(value) || !latexCommandPattern.test(value)) return false;
   return /[=+\-*/^_{}<>]|\d/.test(value) || standaloneMathCommandPattern.test(value);
+}
+
+// AI output sometimes uses a backslash before Japanese prose as if it were a
+// TeX command. Adapt only that invalid notation at render time; keep the source.
+export function normalizeLatexForDisplay(value = "") {
+  return String(value).replace(/(?<!\\)\\([\u3040-\u30ff\u3400-\u9fff]+)/g, "\\text{$1}");
 }
 
 function normalizeDocumentMath(value = "") {
@@ -426,10 +534,10 @@ function diagramLineScore(line) {
 }
 
 function stripInlineLinks(value = "") {
-  return String(value)
+  return mapOutsideMath(value, (text) => text
     .replace(/\[([^\]]+)\]\[\d+\]/g, "$1")
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
-    .replace(/\[\d+\]/g, "")
+    .replace(/\[\d+\]/g, ""), { preserveCode: true })
     .trim();
 }
 
